@@ -59,7 +59,7 @@ app.post('/api', async (req, res) => {
         return res.status(400).send('Bad Request: No event data');
     }
 
-    console.log(events);
+    // console.log(events);
 
     // Process each event received from Radar
     for (const event of events) {
