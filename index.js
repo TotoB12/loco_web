@@ -40,11 +40,6 @@ app.get('/home', (req, res) => {
     res.sendFile(__dirname + '/public/home.html');
 });
 
-// serve 404.html
-app.get('*', (req, res) => {
-    res.sendFile(__dirname + '/public/404.html');
-});
-
 // Function to verify the Radar webhook signature
 function verifyRadarSignature(req) {
     const signingId = req.headers['x-radar-signing-id'];
@@ -123,6 +118,11 @@ app.post('/api', async (req, res) => {
 // A simple health-check endpoint (optional)
 app.get('/health', (req, res) => {
     res.send('Server is healthy');
+});
+
+// serve 404.html
+app.get('*', (req, res) => {
+    res.sendFile(__dirname + '/public/404.html');
 });
 
 // Start the server
