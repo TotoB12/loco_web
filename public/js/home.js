@@ -30,12 +30,16 @@ auth.onAuthStateChanged(user => {
             } else {
                 document.getElementById('userPosition').textContent = 'No location data available.';
             }
+            // Hide loader after data has loaded
+            hideLoader();
         }).catch(error => {
             console.error("Error fetching user data:", error);
             document.getElementById('userPosition').textContent = 'Error fetching data.';
+            hideLoader();
         });
     } else {
-        // No user signed in; redirect to login page.
+        // Hide loader and redirect to login if not authenticated
+        hideLoader();
         window.location.href = "login";
     }
 });

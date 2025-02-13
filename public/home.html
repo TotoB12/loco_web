@@ -7,9 +7,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/colors.css">
     <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/loader.css"> <!-- Loader CSS -->
 </head>
 
 <body>
+    <!-- Loader Overlay -->
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
+
     <div class="container">
         <h1>Welcome, <span id="userName">User</span></h1>
         <div class="user-info">
@@ -22,6 +28,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <!-- Loader JS -->
+    <script src="js/loader.js"></script>
+    <!-- Home Page Script -->
     <script src="js/home.js"></script>
 </body>
 

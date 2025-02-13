@@ -36,5 +36,7 @@ document.getElementById('loginButton').addEventListener('click', function () {
 auth.onAuthStateChanged(user => {
     if (user) {
         window.location.href = "home";
+    } else {
+        hideLoader();
     }
 });

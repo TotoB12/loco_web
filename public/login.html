@@ -7,9 +7,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/colors.css">
     <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/loader.css"> <!-- Loader CSS -->
 </head>
 
 <body>
+    <!-- Loader Overlay -->
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
+
     <div class="container">
         <h1>Login</h1>
         <div id="error" class="error"></div>
@@ -24,6 +30,9 @@
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <!-- Loader JS -->
+    <script src="js/loader.js"></script>
+    <!-- Login Page Script -->
     <script src="js/login.js"></script>
 </body>
 
