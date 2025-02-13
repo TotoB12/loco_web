@@ -75,6 +75,16 @@ body {
     display: none !important;
 }
 
+.marker {
+    width: 30px;
+    height: 30px;
+    background-color: var(--blue);
+    border-radius: 50%;
+    border: 2px solid var(--white);
+    box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 5px;
+    cursor: pointer;
+}
+
 /* User List Styles */
 .user-list-container {
     margin-top: 20px;

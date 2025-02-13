@@ -1,4 +1,6 @@
 // home.js
+
+// Your existing firebase configuration and initialization remain unchanged.
 const firebaseConfig = {
     apiKey: "AIzaSyAR24CQPymO-X5-6L-JeKRGfyqXm3n8MOs",
     authDomain: "totob12-loco.firebaseapp.com",
@@ -14,6 +16,10 @@ const db = firebase.database();
 
 let receivingUsersData = {};   // Will hold data for users sharing with you
 let receivingListeners = {};   // To keep track of attached listeners
+
+// <<< NEW: Global map instance and markers dictionary >>>
+let map; // Global Mapbox map instance
+let userMarkers = {}; // Dictionary mapping user IDs to marker objects
 
 // Utility: Convert degrees to radians
 function deg2rad(deg) {
@@ -35,7 +41,84 @@ function getDistanceFromLatLonInMiles(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// Function to subscribe to users sharing with you
+// >>> NEW: Function to fly (zoom) to a user’s location on the map
+function flyToUser(user) {
+    if (user.location && user.location.latitude && user.location.longitude && map) {
+        map.flyTo({ center: [user.location.longitude, user.location.latitude], zoom: 16 });
+    }
+}
+
+// >>> NEW: Function to update (or create) markers for all users
+function updateMarkers() {
+    if (!map) return;
+    // Combine current user and users sharing with you
+    const allUsers = {};
+    const currentUser = auth.currentUser;
+    if (currentUser && window.currentUserData && window.currentUserData.location) {
+        allUsers[currentUser.uid] = window.currentUserData;
+    }
+    Object.keys(receivingUsersData).forEach(uid => {
+        const user = receivingUsersData[uid];
+        if (user && user.location) {
+            allUsers[uid] = user;
+        }
+    });
+
+    // For each user, add or update marker
+    for (const uid in allUsers) {
+        const user = allUsers[uid];
+        if (user.location && user.location.latitude && user.location.longitude) {
+            const coords = [user.location.longitude, user.location.latitude];
+            if (userMarkers[uid]) {
+                // Update marker position if it already exists
+                userMarkers[uid].setLngLat(coords);
+            } else {
+                // Create a new marker element
+                const el = document.createElement('div');
+                el.className = 'marker';
+                el.addEventListener('click', function () {
+                    flyToUser(user);
+                });
+                const marker = new mapboxgl.Marker(el)
+                    .setLngLat(coords)
+                    .addTo(map);
+                userMarkers[uid] = marker;
+            }
+        }
+    }
+
+    // Remove markers that no longer have corresponding user data
+    for (const uid in userMarkers) {
+        if (!allUsers[uid]) {
+            userMarkers[uid].remove();
+            delete userMarkers[uid];
+        }
+    }
+}
+
+// >>> MODIFIED: Initialize (or update) the Mapbox map
+function initMap(lng, lat) {
+    // If map is not already created, create it
+    if (!map) {
+        mapboxgl.accessToken = 'pk.eyJ1IjoidG90b2IxMjE3IiwiYSI6ImNsbXo4NHdocjA4dnEya215cjY0aWJ1cGkifQ.OMzA6Q8VnHLHZP-P8ACBRw';
+        map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/standard',
+            attributionControl: false, // Remove Mapbox attribution
+            center: [lng, lat],
+            zoom: 16
+        });
+        // Add zoom and rotation controls to the map
+        map.addControl(new mapboxgl.NavigationControl());
+    } else {
+        // If the map already exists, fly to the new coordinates
+        map.flyTo({ center: [lng, lat], zoom: 16 });
+    }
+    // Update markers after (re)initializing the map
+    updateMarkers();
+}
+
+// Subscribe to users sharing with you
 function subscribeToReceivingUsers(currentUserId) {
     const receivingFromRef = db.ref(`users/${currentUserId}/receivingFrom`);
     receivingFromRef.on('value', snapshot => {
@@ -61,6 +144,7 @@ function subscribeToReceivingUsers(currentUserId) {
                         userData.uid = uid;
                         receivingUsersData[uid] = userData;
                         renderUserList();
+                        updateMarkers(); // <<< NEW: update markers when data changes
                     }
                 });
                 // Save a function to remove this listener later
@@ -68,8 +152,9 @@ function subscribeToReceivingUsers(currentUserId) {
             }
         });
 
-        // Render user list after updating listeners
+        // Render user list after updating listeners and markers
         renderUserList();
+        updateMarkers(); // <<< NEW: update markers when receiving list changes
     });
 }
 
@@ -156,10 +241,10 @@ function createUserListItem(user, isCurrentUser) {
         item.appendChild(distanceElement);
     }
 
-    // When clicking on a list item, center the map on that user's location (if available)
+    // <<< MODIFIED: When clicking on a list item, zoom the map to that user's marker
     item.addEventListener('click', () => {
         if (user.location && user.location.longitude && user.location.latitude) {
-            initMap(user.location.longitude, user.location.latitude);
+            flyToUser(user);
         }
     });
 
@@ -212,6 +297,7 @@ auth.onAuthStateChanged(user => {
 
                 // Store current user data globally for the "You" entry
                 window.currentUserData = data;
+                updateMarkers(); // <<< NEW: update markers when current user data loads
             })
             .catch(error => {
                 console.error("Error fetching user data:", error);
@@ -238,23 +324,4 @@ document.getElementById('logoutButton').addEventListener('click', function () {
     });
 });
 
-// Function to initialize the Mapbox map with attribution removed
-function initMap(lng, lat) {
-    // Set your Mapbox access token
-    mapboxgl.accessToken = 'pk.eyJ1IjoidG90b2IxMjE3IiwiYSI6ImNsbXo4NHdocjA4dnEya215cjY0aWJ1cGkifQ.OMzA6Q8VnHLHZP-P8ACBRw';
-    const map = new mapboxgl.Map({
-        container: 'map',
-        style: 'mapbox://styles/mapbox/standard',
-        attributionControl: false, // Remove Mapbox attribution
-        center: [lng, lat],
-        zoom: 16
-    });
-
-    // Add zoom and rotation controls to the map
-    map.addControl(new mapboxgl.NavigationControl());
-
-    // Add a marker at the user's location
-    new mapboxgl.Marker()
-        .setLngLat([lng, lat])
-        .addTo(map);
-}
+// Note: The old initMap function is now replaced by our updated version above.
