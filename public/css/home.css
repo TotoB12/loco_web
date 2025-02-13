@@ -1,0 +1,36 @@
+/* home.css */
+body {
+    font-family: Arial, sans-serif;
+    background-color: var(--white);
+    color: var(--black);
+    padding: 20px;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+.user-info {
+    margin-bottom: 30px;
+    font-size: 18px;
+}
+
+.logout-btn {
+    padding: 10px 20px;
+    background-color: var(--blue);
+    color: var(--white);
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background-color: var(--navy);
+}

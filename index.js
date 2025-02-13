@@ -4,7 +4,7 @@ const express = require('express');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin
+// Initialize Firebase Admin using your service account from an environment variable.
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
@@ -18,6 +18,33 @@ const PORT = process.env.PORT || 3000;
 // Middleware to parse incoming JSON bodies
 app.use(express.json());
 
+// Serve static files (HTML, CSS, JS) from the "public" directory
+app.use(express.static('public'));
+
+app.get('/', (req, res) => {
+    res.redirect('/home');
+});
+
+// serve login.html
+app.get('/login', (req, res) => {
+    res.sendFile(__dirname + '/public/login.html');
+});
+
+// serve signup.html
+app.get('/signup', (req, res) => {
+    res.sendFile(__dirname + '/public/signup.html');
+});
+
+// serve home.html
+app.get('/home', (req, res) => {
+    res.sendFile(__dirname + '/public/home.html');
+});
+
+// serve 404.html
+app.get('*', (req, res) => {
+    res.sendFile(__dirname + '/public/404.html');
+});
+
 // Function to verify the Radar webhook signature
 function verifyRadarSignature(req) {
     const signingId = req.headers['x-radar-signing-id'];
@@ -28,7 +55,6 @@ function verifyRadarSignature(req) {
         return false;
     }
 
-    // Use the token from an environment variable if set
     const token = process.env.RADAR_WEBHOOK_TOKEN || 'null';
     const hmac = crypto.createHmac('sha1', token);
     hmac.update(signingId);
@@ -43,12 +69,11 @@ function verifyRadarSignature(req) {
 
 // POST endpoint for Radar webhooks
 app.post('/api', async (req, res) => {
-    // Verify the request is coming from Radar
     if (!verifyRadarSignature(req)) {
         return res.status(403).send('Forbidden: Invalid signature');
     }
 
-    // Radar may send a single event (key: "event") or multiple events (key: "events")
+    // Handle either a single event or multiple events
     let events = [];
     if (req.body.event) {
         events.push(req.body.event);
@@ -59,36 +84,29 @@ app.post('/api', async (req, res) => {
         return res.status(400).send('Bad Request: No event data');
     }
 
-    // console.log(events);
-
-    // Process each event received from Radar
+    // Process each event from Radar
     for (const event of events) {
         try {
-            // Extract the user ID. Radar’s payload nests the user info in "user"
             const userId = event.user && event.user.userId ? event.user.userId : null;
             if (!userId) {
                 console.error('No userId found in event:', event);
-                continue; // Skip this event if no userId is found
+                continue;
             }
 
-            // Ensure that the event contains valid location data
             if (event.location &&
                 event.location.coordinates &&
                 event.location.coordinates.length === 2) {
-
                 // Radar sends coordinates as [longitude, latitude]
                 const [longitude, latitude] = event.location.coordinates;
-                // Use the event's createdAt timestamp if available; otherwise use Firebase's server timestamp
                 const timestamp = event.createdAt
                     ? new Date(event.createdAt).getTime()
                     : admin.database.ServerValue.TIMESTAMP;
 
-                // Update the user's location in the Firebase Realtime Database
+                // Update the user's location in Firebase Realtime Database
                 await admin.database().ref(`users/${userId}`).update({
                     location: { latitude, longitude },
                     locationTimestamp: timestamp,
                 });
-
                 console.log(`Updated location for user ${userId}: (${latitude}, ${longitude})`);
             } else {
                 console.error('Event does not contain valid location data:', event);
@@ -109,5 +127,5 @@ app.get('/health', (req, res) => {
 
 // Start the server
 app.listen(PORT, () => {
-    console.log(`Radar Webhook server listening on port ${PORT}`);
+    console.log(`Server listening on port ${PORT}`);
 });
