@@ -58,3 +58,56 @@ body {
     left: 0;
     right: 0;
 }
+
+/* User List Styles */
+.user-list-container {
+    margin-top: 20px;
+}
+
+.user-list-container h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: var(--black);
+}
+
+.user-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.user-list-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.user-list-item:hover {
+    background-color: #f5f5f5;
+}
+
+.user-list-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ccc;
+    background-size: cover;
+    background-position: center;
+    margin-right: 10px;
+}
+
+.user-list-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-list-name {
+    font-size: 16px;
+    color: var(--black);
+}
+
+.user-list-timestamp {
+    font-size: 12px;
+    color: #666;
+}
