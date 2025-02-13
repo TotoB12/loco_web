@@ -1,5 +1,4 @@
-/* home.css */
-
+/* Existing Styles (unchanged) */
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -9,16 +8,27 @@ body {
 .layout {
     display: flex;
     height: 100vh;
-    /* Full viewport height */
 }
 
 /* Sidebar on the left */
 .sidebar {
+    display: flex;
+    flex-direction: column;
     width: 300px;
     background-color: var(--white);
     color: var(--black);
     padding: 20px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 10px;
 }
 
 .sidebar h1 {
@@ -30,6 +40,7 @@ body {
     font-size: 18px;
 }
 
+/* Logout button */
 .logout-btn {
     padding: 10px 20px;
     background-color: var(--blue);
@@ -38,6 +49,7 @@ body {
     border-radius: 5px;
     font-size: 16px;
     cursor: pointer;
+    width: 100%;
 }
 
 .logout-btn:hover {
@@ -57,6 +69,10 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
+}
+
+.mapboxgl-ctrl-logo {
+    display: none !important;
 }
 
 /* User List Styles */
@@ -109,5 +125,12 @@ body {
 
 .user-list-timestamp {
     font-size: 12px;
+    color: #666;
+}
+
+/* New: Distance info on the right of each user item */
+.user-list-distance {
+    margin-left: auto;
+    font-size: 14px;
     color: #666;
 }

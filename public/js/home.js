@@ -15,6 +15,26 @@ const db = firebase.database();
 let receivingUsersData = {};   // Will hold data for users sharing with you
 let receivingListeners = {};   // To keep track of attached listeners
 
+// Utility: Convert degrees to radians
+function deg2rad(deg) {
+    return deg * (Math.PI / 180);
+}
+
+// Utility: Compute distance in miles using the haversine formula
+function getDistanceFromLatLonInMiles(lat1, lon1, lat2, lon2) {
+    const R = 3958.8; // Radius of the earth in miles
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) *
+        Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 // Function to subscribe to users sharing with you
 function subscribeToReceivingUsers(currentUserId) {
     const receivingFromRef = db.ref(`users/${currentUserId}/receivingFrom`);
@@ -122,6 +142,20 @@ function createUserListItem(user, isCurrentUser) {
     item.appendChild(avatar);
     item.appendChild(details);
 
+    // Add distance (if not current user and if both locations are available)
+    if (!isCurrentUser && window.currentUserData && window.currentUserData.location && user.location) {
+        const distance = getDistanceFromLatLonInMiles(
+            window.currentUserData.location.latitude,
+            window.currentUserData.location.longitude,
+            user.location.latitude,
+            user.location.longitude
+        );
+        const distanceElement = document.createElement('div');
+        distanceElement.className = 'user-list-distance';
+        distanceElement.textContent = `${distance.toFixed(1)} mi`;
+        item.appendChild(distanceElement);
+    }
+
     // When clicking on a list item, center the map on that user's location (if available)
     item.addEventListener('click', () => {
         if (user.location && user.location.longitude && user.location.latitude) {
@@ -204,19 +238,14 @@ document.getElementById('logoutButton').addEventListener('click', function () {
     });
 });
 
-// Function to initialize the Mapbox map (unchanged)
+// Function to initialize the Mapbox map with attribution removed
 function initMap(lng, lat) {
     // Set your Mapbox access token
     mapboxgl.accessToken = 'pk.eyJ1IjoidG90b2IxMjE3IiwiYSI6ImNsbXo4NHdocjA4dnEya215cjY0aWJ1cGkifQ.OMzA6Q8VnHLHZP-P8ACBRw';
     const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/standard',
-        config:
-        {
-            basemap: {
-                show3dObjects: false
-            }
-        },
+        attributionControl: false, // Remove Mapbox attribution
         center: [lng, lat],
         zoom: 16
     });

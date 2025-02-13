@@ -20,18 +20,22 @@
 
     <div class="layout">
         <div class="sidebar">
-            <h1>Welcome, <span id="userName">User</span></h1>
-            <div class="user-info">
-                <p>Last Position: <span id="userPosition">Loading...</span></p>
-            </div>
-            <!-- New People List in the sidebar -->
-            <div class="user-list-container">
-                <h2>People</h2>
-                <div id="userList" class="user-list">
-                    <!-- Dynamically populated user list -->
+            <div class="sidebar-content">
+                <h1>Welcome, <span id="userName">User</span></h1>
+                <div class="user-info">
+                    <p>Last Position: <span id="userPosition">Loading...</span></p>
+                </div>
+                <!-- People List Container -->
+                <div class="user-list-container">
+                    <h2>People</h2>
+                    <div id="userList" class="user-list">
+                        <!-- Dynamically populated user list -->
+                    </div>
                 </div>
             </div>
-            <button class="logout-btn" id="logoutButton">Logout</button>
+            <div class="sidebar-footer">
+                <button class="logout-btn" id="logoutButton">Logout</button>
+            </div>
         </div>
         <div class="map-container">
             <div id="map"></div>
