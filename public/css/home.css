@@ -1,18 +1,27 @@
 /* home.css */
+
 body {
     font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.layout {
+    display: flex;
+    height: 100vh;
+    /* Full viewport height */
+}
+
+/* Sidebar on the left */
+.sidebar {
+    width: 300px;
     background-color: var(--white);
     color: var(--black);
     padding: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
-.container {
-    max-width: 600px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-h1 {
+.sidebar h1 {
     margin-bottom: 20px;
 }
 
@@ -33,4 +42,19 @@ h1 {
 
 .logout-btn:hover {
     background-color: var(--navy);
+}
+
+/* Map container on the right */
+.map-container {
+    flex: 1;
+    position: relative;
+}
+
+/* The map should fill the entire container */
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
