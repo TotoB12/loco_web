@@ -48,7 +48,39 @@ function flyToUser(user) {
     }
 }
 
-// >>> NEW: Function to update (or create) markers for all users
+// NEW: Helper function to update a marker element’s content
+function updateMarkerContent(markerEl, user) {
+    // Clear existing content
+    markerEl.innerHTML = '';
+
+    // Create avatar container
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'marker-avatar';
+    if (user.avatar && user.avatar.link) {
+        const img = document.createElement('img');
+        img.src = user.avatar.link;
+        img.alt = user.firstName || 'Avatar';
+        avatarEl.appendChild(img);
+    } else {
+        // Use a default avatar with Material icon
+        avatarEl.classList.add('default-avatar');
+        const icon = document.createElement('span');
+        icon.className = 'material-icons';
+        icon.textContent = 'person_outline';
+        avatarEl.appendChild(icon);
+    }
+
+    // Create name container
+    const nameEl = document.createElement('div');
+    nameEl.className = 'marker-name';
+    nameEl.textContent = user.firstName || 'User';
+
+    // Append avatar and name to the marker element
+    markerEl.appendChild(avatarEl);
+    markerEl.appendChild(nameEl);
+}
+
+// >>> NEW: Updated marker creation and update in updateMarkers()
 function updateMarkers() {
     if (!map) return;
     // Combine current user and users sharing with you
@@ -70,16 +102,21 @@ function updateMarkers() {
         if (user.location && user.location.latitude && user.location.longitude) {
             const coords = [user.location.longitude, user.location.latitude];
             if (userMarkers[uid]) {
-                // Update marker position if it already exists
+                // Update marker position
                 userMarkers[uid].setLngLat(coords);
+                // Update marker content in case user details have changed
+                const markerEl = userMarkers[uid].getElement();
+                updateMarkerContent(markerEl, user);
             } else {
                 // Create a new marker element
-                const el = document.createElement('div');
-                el.className = 'marker';
-                el.addEventListener('click', function () {
+                const markerEl = document.createElement('div');
+                markerEl.className = 'marker-pill';
+                updateMarkerContent(markerEl, user);
+                // When clicking the marker, fly to the user’s location
+                markerEl.addEventListener('click', function () {
                     flyToUser(user);
                 });
-                const marker = new mapboxgl.Marker(el)
+                const marker = new mapboxgl.Marker(markerEl)
                     .setLngLat(coords)
                     .addTo(map);
                 userMarkers[uid] = marker;
