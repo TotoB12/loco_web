@@ -21,6 +21,14 @@ let receivingListeners = {};   // To keep track of attached listeners
 let map; // Global Mapbox map instance
 let userMarkers = {}; // Dictionary mapping user IDs to marker objects
 
+// <<< NEW: Variables for the user info sidebar >>>
+let selectedUser = null;
+const userInfoSidebar = document.getElementById('userInfoSidebar');
+const closeUserInfoSidebarBtn = document.getElementById('closeUserInfoSidebar');
+const selectedUserFullNameEl = document.getElementById('selectedUserFullName');
+const selectedUserAddressEl = document.getElementById('selectedUserAddress');
+const selectedUserTimeAgoEl = document.getElementById('selectedUserTimeAgo');
+
 // Utility: Convert degrees to radians
 function deg2rad(deg) {
     return deg * (Math.PI / 180);
@@ -112,9 +120,9 @@ function updateMarkers() {
                 const markerEl = document.createElement('div');
                 markerEl.className = 'marker-pill';
                 updateMarkerContent(markerEl, user);
-                // When clicking the marker, fly to the user’s location
+                // When clicking the marker, fly to the user’s location and open the user info sidebar
                 markerEl.addEventListener('click', function () {
-                    flyToUser(user);
+                    openUserInfoSidebar(user);
                 });
                 const marker = new mapboxgl.Marker(markerEl)
                     .setLngLat(coords)
@@ -181,7 +189,7 @@ function subscribeToReceivingUsers(currentUserId) {
                         userData.uid = uid;
                         receivingUsersData[uid] = userData;
                         renderUserList();
-                        updateMarkers(); // <<< NEW: update markers when data changes
+                        updateMarkers(); // update markers when data changes
                     }
                 });
                 // Save a function to remove this listener later
@@ -191,7 +199,7 @@ function subscribeToReceivingUsers(currentUserId) {
 
         // Render user list after updating listeners and markers
         renderUserList();
-        updateMarkers(); // <<< NEW: update markers when receiving list changes
+        updateMarkers();
     });
 }
 
@@ -278,11 +286,9 @@ function createUserListItem(user, isCurrentUser) {
         item.appendChild(distanceElement);
     }
 
-    // <<< MODIFIED: When clicking on a list item, zoom the map to that user's marker
+    // <<< MODIFIED: When clicking on a list item, fly the map to that user's location and open the user info sidebar >>>
     item.addEventListener('click', () => {
-        if (user.location && user.location.longitude && user.location.latitude) {
-            flyToUser(user);
-        }
+        openUserInfoSidebar(user);
     });
 
     return item;
@@ -299,6 +305,69 @@ function getTimeAgo(timestamp) {
     if (diffInHours < 24) return diffInHours + ' hr ago';
     const diffInDays = Math.floor(diffInHours / 24);
     return diffInDays + ' day' + (diffInDays > 1 ? 's' : '') + ' ago';
+}
+
+/* >>> NEW: Functions for the User Info Sidebar */
+
+// Opens the sidebar and populates it with the selected user's info
+function openUserInfoSidebar(user) {
+    selectedUser = user;
+    // Update full name (concatenating first and last names if available)
+    const fullName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim() || user.email || 'Unknown User';
+    selectedUserFullNameEl.textContent = fullName;
+
+    // Set initial placeholder for address and time
+    selectedUserAddressEl.textContent = 'Loading address...';
+    selectedUserTimeAgoEl.textContent = user.locationTimestamp ? getTimeAgo(user.locationTimestamp) : '--';
+
+    // Fly to user’s location on the map
+    flyToUser(user);
+
+    // Fetch reverse geocoded address if location is available
+    if (user.location && user.location.latitude && user.location.longitude) {
+        fetchReverseGeocode(user.location.latitude, user.location.longitude)
+            .then(address => {
+                selectedUserAddressEl.textContent = address;
+            })
+            .catch(error => {
+                console.error("Reverse geocode error:", error);
+                selectedUserAddressEl.textContent = "Address not found";
+            });
+    } else {
+        selectedUserAddressEl.textContent = "No location available";
+    }
+
+    // Open (slide in) the sidebar
+    userInfoSidebar.classList.add('open');
+}
+
+// Closes the user info sidebar
+function closeUserInfoSidebar() {
+    userInfoSidebar.classList.remove('open');
+    selectedUser = null;
+}
+
+// Reverse geocode using Nominatim OpenStreetMap API
+async function fetchReverseGeocode(lat, lon) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+    const response = await fetch(url, { headers: { 'User-Agent': 'Loco-App' } });
+    if (!response.ok) {
+        throw new Error("Failed to fetch reverse geocode");
+    }
+    const data = await response.json();
+    return data.display_name || "Address not found";
+}
+
+// Update time since update periodically for the selected user
+setInterval(() => {
+    if (selectedUser && selectedUser.locationTimestamp) {
+        selectedUserTimeAgoEl.textContent = getTimeAgo(selectedUser.locationTimestamp);
+    }
+}, 10000);
+
+// Attach event listener to the close button of the user info sidebar
+if (closeUserInfoSidebarBtn) {
+    closeUserInfoSidebarBtn.addEventListener('click', closeUserInfoSidebar);
 }
 
 // Existing authentication listener and map initialization
@@ -334,7 +403,7 @@ auth.onAuthStateChanged(user => {
 
                 // Store current user data globally for the "You" entry
                 window.currentUserData = data;
-                updateMarkers(); // <<< NEW: update markers when current user data loads
+                updateMarkers();
             })
             .catch(error => {
                 console.error("Error fetching user data:", error);

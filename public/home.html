@@ -44,6 +44,20 @@
         </div>
     </div>
 
+    <!-- New: User Info Sidebar Overlay -->
+    <div id="userInfoSidebar" class="user-info-sidebar">
+        <div class="user-info-sidebar-header">
+            <button id="closeUserInfoSidebar" class="user-info-close-btn">
+                <span class="material-icons">arrow_back</span>
+            </button>
+            <h2 id="selectedUserFullName">User Name</h2>
+        </div>
+        <div class="user-info-sidebar-content">
+            <p id="selectedUserAddress">Address loading...</p>
+            <p>Last updated: <span id="selectedUserTimeAgo">--</span></p>
+        </div>
+    </div>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
