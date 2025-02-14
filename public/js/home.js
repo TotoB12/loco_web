@@ -378,17 +378,19 @@ auth.onAuthStateChanged(user => {
         userRef
             .once('value')
             .then(snapshot => {
-                const data = snapshot.val();
-
-                // Set user's name (or fallback to email)
-                if (data && data.firstName) {
-                    document.getElementById('userName').textContent = data.firstName;
-                } else {
-                    document.getElementById('userName').textContent = user.email;
+                // Ensure we always have a data object for the current user
+                const data = snapshot.val() || {};
+                data.uid = user.uid;
+                // If firstName isn’t set, use the part before @ from the email
+                if (!data.firstName) {
+                    data.firstName = user.email.split('@')[0];
                 }
 
+                // Set the sidebar header name
+                document.getElementById('userName').textContent = data.firstName || user.email;
+
                 // Set last known location & initialize map
-                if (data && data.location) {
+                if (data.location) {
                     const lat = data.location.latitude || 'N/A';
                     const lng = data.location.longitude || 'N/A';
                     document.getElementById('userPosition').textContent = `Latitude: ${lat}, Longitude: ${lng}`;
@@ -403,6 +405,7 @@ auth.onAuthStateChanged(user => {
 
                 // Store current user data globally for the "You" entry
                 window.currentUserData = data;
+                renderUserList();
                 updateMarkers();
             })
             .catch(error => {
