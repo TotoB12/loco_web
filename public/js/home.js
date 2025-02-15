@@ -15,12 +15,14 @@ const auth = firebase.auth();
 const db = firebase.database();
 
 // Global variables
-let receivingUsersData = {};   // Data for users sharing with you
-let receivingListeners = {};   // For attached realtime listeners
+let receivingUsersData = {};     // Data for users sharing with you
+let receivingListeners = {};     // Realtime listeners for sharing users
 let map;                       // Global Mapbox map instance
 let userMarkers = {};          // Mapping user IDs to marker objects
 let selectedUser = null;       // The user currently shown in the sidebar
-let selectedUserLastCoords = null; // Last coordinates we reverse geocoded for the selected user
+
+// This object tracks the last location update (coordinates and timestamp) that was used to refresh the sidebar.
+let selectedUserLastUpdate = { lat: null, lng: null, timestamp: null };
 
 // --- Utility Functions ---
 
@@ -66,10 +68,9 @@ function flyToUser(user) {
 
 // Update marker element content (avatar + name)
 function updateMarkerContent(markerEl, user) {
-    // Clear current content
-    markerEl.innerHTML = '';
+    markerEl.innerHTML = ''; // Clear current content
 
-    // Create avatar container
+    // Avatar container
     const avatarEl = document.createElement('div');
     avatarEl.className = 'marker-avatar';
     if (user.avatar && user.avatar.link) {
@@ -85,7 +86,7 @@ function updateMarkerContent(markerEl, user) {
         avatarEl.appendChild(icon);
     }
 
-    // Create name container
+    // Name container
     const nameEl = document.createElement('div');
     nameEl.className = 'marker-name';
     nameEl.textContent = user.firstName || 'User';
@@ -132,7 +133,7 @@ function updateMarkers() {
         }
     }
 
-    // Remove markers if their user data no longer exists
+    // Remove markers for users that no longer exist
     for (const uid in userMarkers) {
         if (!allUsers[uid]) {
             userMarkers[uid].remove();
@@ -141,7 +142,7 @@ function updateMarkers() {
     }
 }
 
-// Initialize or fly the Mapbox map
+// Initialize (or fly) the Mapbox map
 function initMap(lng, lat) {
     if (!map) {
         mapboxgl.accessToken = 'pk.eyJ1IjoidG90b2IxMjE3IiwiYSI6ImNsbXo4NHdocjA4dnEya215cjY0aWJ1cGkifQ.OMzA6Q8VnHLHZP-P8ACBRw';
@@ -186,7 +187,7 @@ function subscribeToReceivingUsers(currentUserId) {
                     if (userData) {
                         userData.uid = uid;
                         receivingUsersData[uid] = userData;
-                        // If this user is currently selected in the sidebar, update its info
+                        // If the updated user is currently in the sidebar, update it immediately
                         if (selectedUser && selectedUser.uid === uid) {
                             selectedUser = userData;
                             updateSelectedUserSidebar();
@@ -257,7 +258,7 @@ function createUserListItem(user, isCurrentUser) {
         name.textContent += " (You)";
     }
 
-    // Timestamp element with data attribute for real-time updating
+    // Timestamp element with data attribute for realtime updating
     const timestamp = document.createElement('div');
     timestamp.className = 'user-list-timestamp';
     if (user.locationTimestamp) {
@@ -299,14 +300,17 @@ function createUserListItem(user, isCurrentUser) {
 // Open the sidebar and populate it with the selected user's info
 function openUserInfoSidebar(user) {
     selectedUser = user;
+    // Reset the last-update tracker so that the next update always triggers a refresh
+    selectedUserLastUpdate = { lat: null, lng: null, timestamp: null };
+
     const fullName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim() || user.email || 'Unknown User';
     document.getElementById('selectedUserFullName').textContent = fullName;
 
-    // Set placeholders
+    // Set placeholders for address and last updated time
     document.getElementById('selectedUserAddress').textContent = 'Loading address...';
     document.getElementById('selectedUserTimeAgo').textContent = user.locationTimestamp ? getTimeAgo(user.locationTimestamp) : '--';
 
-    // Fly to the user's location
+    // Fly to the user's location on the map
     flyToUser(user);
 
     // Immediately update the sidebar details
@@ -317,16 +321,28 @@ function openUserInfoSidebar(user) {
 }
 
 // Update the sidebar info for the selected user (address & last updated)
+// This function checks if the user's location data has changed (either coordinates or timestamp)
+// and, if so, re-fetches the reverse geocoded address.
 function updateSelectedUserSidebar() {
     if (!selectedUser) return;
-    // Update "last updated" text
+
+    // Always update the "last updated" text
     document.getElementById('selectedUserTimeAgo').textContent = getTimeAgo(selectedUser.locationTimestamp);
 
-    // If location data exists, update the address only if coordinates have changed
     if (selectedUser.location && selectedUser.location.latitude && selectedUser.location.longitude) {
-        const newCoords = { lat: selectedUser.location.latitude, lng: selectedUser.location.longitude };
-        if (!selectedUserLastCoords || selectedUserLastCoords.lat !== newCoords.lat || selectedUserLastCoords.lng !== newCoords.lng) {
-            selectedUserLastCoords = newCoords;
+        const newCoords = {
+            lat: selectedUser.location.latitude,
+            lng: selectedUser.location.longitude
+        };
+        const newTimestamp = selectedUser.locationTimestamp;
+
+        // If the update is new (different timestamp or coordinates), refresh the reverse geocode
+        if (
+            selectedUserLastUpdate.timestamp !== newTimestamp ||
+            selectedUserLastUpdate.lat !== newCoords.lat ||
+            selectedUserLastUpdate.lng !== newCoords.lng
+        ) {
+            selectedUserLastUpdate = { lat: newCoords.lat, lng: newCoords.lng, timestamp: newTimestamp };
             fetchReverseGeocode(newCoords.lat, newCoords.lng)
                 .then(address => {
                     document.getElementById('selectedUserAddress').textContent = address;
@@ -345,10 +361,10 @@ function updateSelectedUserSidebar() {
 function closeUserInfoSidebar() {
     document.getElementById('userInfoSidebar').classList.remove('open');
     selectedUser = null;
-    selectedUserLastCoords = null;
+    selectedUserLastUpdate = { lat: null, lng: null, timestamp: null };
 }
 
-// Reverse geocode using Nominatim OpenStreetMap API
+// Reverse geocode using the Nominatim OpenStreetMap API
 async function fetchReverseGeocode(lat, lon) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
     const response = await fetch(url, { headers: { 'User-Agent': 'Loco-App' } });
@@ -420,6 +436,12 @@ auth.onAuthStateChanged(user => {
             renderUserList();
             updateMarkers();
             hideLoader();
+
+            // If the current user is shown in the sidebar, update that info too
+            if (selectedUser && selectedUser.uid === user.uid) {
+                selectedUser = data;
+                updateSelectedUserSidebar();
+            }
         });
         subscribeToReceivingUsers(user.uid);
     } else {
